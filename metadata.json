@@ -1,0 +1,6 @@
+{
+  "name": "NearKart - Local Marketplace & Seller Management",
+  "description": "Complete local commerce platform for sellers to manage offline-to-online shops, inventory, orders, and sales tracking, with buyer live tracking, real-time OTP verification, and Stripe payment.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
