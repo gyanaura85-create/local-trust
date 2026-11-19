@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "NearKart",
+    "slug": "nearkart",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "icon": "./nearkart-icon.png",
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "sounds": [
+            "./nearkart_notification.wav"
+          ]
+        }
+      ]
+    ],
+    "android": {
+      "package": "com.nearkart.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./nearkart-icon.png",
+        "backgroundColor": "#FFFFFF"
+      }
+    }
+  }
+}
