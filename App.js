@@ -110,7 +110,7 @@ export default function App() {
       } catch (e) {}
       setBooting(false);
     })();
-  }, [loadRequests, loadShopManagement]);
+  }, []);
 
   const login = async () => {
     if (!email.trim() || !password) {
@@ -141,6 +141,8 @@ export default function App() {
     await AsyncStorage.removeItem(SESSION_KEY);
     setSession(null);
     setRequests([]);
+    setShops([]);
+    setShopSummary({});
   };
 
   const approve = (item) => {
