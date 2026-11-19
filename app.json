@@ -1,27 +1,18 @@
 {
   "expo": {
-    "name": "NearKart",
-    "slug": "nearkart",
+    "name": "NearKart Admin",
+    "slug": "nearkart-admin",
     "version": "1.0.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "icon": "./nearkart-icon.png",
-    "plugins": [
-      [
-        "expo-notifications",
-        {
-          "sounds": [
-            "./nearkart_notification.wav"
-          ]
-        }
-      ]
-    ],
     "android": {
-      "package": "com.nearkart.app",
+      "package": "com.nearkart.admin",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./nearkart-icon.png",
-        "backgroundColor": "#FFFFFF"
+        "backgroundColor": "#102b58"
       }
     }
   }
