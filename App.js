@@ -45,6 +45,10 @@ export default function App() {
   const [email, setEmail] = useState('ssupportnearkert@gmail.com');
   const [password, setPassword] = useState('');
   const [requests, setRequests] = useState([]);
+  const [shops, setShops] = useState([]);
+  const [shopSummary, setShopSummary] = useState({});
+  const [activeTab, setActiveTab] = useState('shops');
+  const [shopsLoading, setShopsLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [booting, setBooting] = useState(true);
   const [busyId, setBusyId] = useState('');
@@ -71,6 +75,27 @@ export default function App() {
     }
   }, [session]);
 
+  const loadShopManagement = useCallback(async (activeSession) => {
+    const s = activeSession || session;
+    if (!s?.access_token) return;
+    setShopsLoading(true);
+    try {
+      const data = await request('/rest/v1/rpc/get_admin_shop_management', 'POST', {}, s.access_token);
+      setShops(Array.isArray(data?.shops) ? data.shops : []);
+      setShopSummary(data?.summary || {});
+    } catch (e) {
+      if (e.status === 401) {
+        await AsyncStorage.removeItem(SESSION_KEY);
+        setSession(null);
+        Alert.alert('Login expired', 'Please dobara login karo.');
+      } else {
+        Alert.alert('Shop details load nahi hui', e.message);
+      }
+    } finally {
+      setShopsLoading(false);
+    }
+  }, [session]);
+
   useEffect(() => {
     (async () => {
       try {
@@ -79,13 +104,13 @@ export default function App() {
           const parsed = JSON.parse(saved);
           if (parsed?.access_token) {
             setSession(parsed);
-            await loadRequests(parsed);
+            await Promise.all([loadRequests(parsed), loadShopManagement(parsed)]);
           }
         }
       } catch (e) {}
       setBooting(false);
     })();
-  }, []);
+  }, [loadRequests, loadShopManagement]);
 
   const login = async () => {
     if (!email.trim() || !password) {
@@ -103,7 +128,7 @@ export default function App() {
       setSession(next);
       await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(next));
       setPassword('');
-      await loadRequests(next);
+      await Promise.all([loadRequests(next), loadShopManagement(next)]);
     } catch (e) {
       Alert.alert('Login failed', e.message);
     } finally {
@@ -127,7 +152,7 @@ export default function App() {
           await request('/rest/v1/rpc/approve_shop_subscription_payment', 'POST',
             { p_payment_id: item.payment_id || item.id }, session.access_token);
           Alert.alert('Approved', 'Subscription approve ho gaya aur shop activate ho gayi.');
-          await loadRequests();
+          await Promise.all([loadRequests(), loadShopManagement()]);
         } catch (e) { Alert.alert('Approval failed', e.message); }
         finally { setBusyId(''); }
       }},
@@ -145,7 +170,7 @@ export default function App() {
       setRejecting(null);
       setReason('');
       Alert.alert('Rejected', 'Subscription request reject kar di gayi.');
-      await loadRequests();
+      await Promise.all([loadRequests(), loadShopManagement()]);
     } catch (e) { Alert.alert('Rejection failed', e.message); }
     finally { setBusyId(''); }
   };
@@ -191,35 +216,84 @@ export default function App() {
         </View>
         <TouchableOpacity onPress={logout} style={styles.logoutBtn}><Text style={styles.logoutText}>↗  Logout</Text></TouchableOpacity>
       </View>
-      <View style={styles.summary}>
-        <View style={styles.summaryIcon}><Text style={styles.summaryIconText}>⌁</Text></View>
-        <View style={styles.summaryCopy}><Text style={styles.summaryLabel}>PENDING REQUESTS</Text><Text style={styles.summaryCaption}>Payments waiting for verification</Text></View>
-        <Text style={styles.summaryNumber}>{requests.length}</Text>
+      <View style={styles.tabBar}>
+        <TouchableOpacity onPress={() => setActiveTab('shops')} style={[styles.tabButton, activeTab === 'shops' && styles.tabActive]}>
+          <Text style={[styles.tabText, activeTab === 'shops' && styles.tabTextActive]}>Shop Management</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => setActiveTab('payments')} style={[styles.tabButton, activeTab === 'payments' && styles.tabActive]}>
+          <Text style={[styles.tabText, activeTab === 'payments' && styles.tabTextActive]}>Subscription Requests</Text>
+        </TouchableOpacity>
       </View>
-      <ScrollView contentContainerStyle={styles.list} refreshControl={<RefreshControl refreshing={loading} onRefresh={() => loadRequests()} />}>
-        {requests.length === 0 && !loading ? (
-          <View style={styles.empty}><Text style={styles.emptyTitle}>No pending requests</Text><Text style={styles.emptyText}>New seller subscription payments yahan dikhenge.</Text><TouchableOpacity style={styles.outlineBtn} onPress={() => loadRequests()}><Text style={styles.outlineText}>Refresh</Text></TouchableOpacity></View>
-        ) : requests.map((item, index) => {
-          const id = item.payment_id || item.id || String(index);
-          const working = busyId === id;
-          return (
-            <View key={id} style={styles.card}>
-              <View style={styles.cardTop}><Text style={styles.shopName}>{item.shop_name || 'Shop'}</Text><Text style={styles.pending}>PENDING</Text></View>
-              <Text style={styles.owner}>{item.owner_name || 'Seller'} {item.phone ? '• ' + item.phone : ''}</Text>
-              <View style={styles.infoGrid}>
-                <View style={styles.infoCell}><Text style={styles.infoLabel}>AMOUNT</Text><Text style={styles.infoValue}>{money(item.amount)}</Text></View>
-                <View style={styles.infoCell}><Text style={styles.infoLabel}>AREA</Text><Text style={styles.infoValue}>{item.area || '—'}</Text></View>
-              </View>
-              <View style={styles.detailLine}><Text style={styles.detailLabel}>UTR / Transaction ID</Text><Text selectable style={styles.detailValue}>{item.utr || '—'}</Text></View>
-              <View style={styles.detailLine}><Text style={styles.detailLabel}>Submitted</Text><Text style={styles.detailValue}>{dateText(item.submitted_at)}</Text></View>
-              <View style={styles.actions}>
-                <TouchableOpacity style={[styles.approveBtn, working && styles.disabled]} disabled={!!busyId} onPress={() => approve(item)}><Text style={styles.actionText}>{working ? 'Please wait…' : 'Approve'}</Text></TouchableOpacity>
-                <TouchableOpacity style={[styles.rejectBtn, working && styles.disabled]} disabled={!!busyId} onPress={() => { setRejecting(item); setReason(''); }}><Text style={styles.actionText}>Reject</Text></TouchableOpacity>
-              </View>
-            </View>
-          );
-        })}
-      </ScrollView>
+      {activeTab === 'shops' ? (
+        <>
+          <View style={styles.shopSummaryGrid}>
+            <View style={styles.shopStat}><Text style={styles.shopStatNumber}>{shopSummary.total_shops || 0}</Text><Text style={styles.shopStatLabel}>TOTAL SHOPS</Text></View>
+            <View style={styles.shopStat}><Text style={styles.shopStatNumber}>{shopSummary.payment_pending || 0}</Text><Text style={styles.shopStatLabel}>PAYMENT PENDING</Text></View>
+            <View style={styles.shopStat}><Text style={styles.shopStatNumber}>{shopSummary.not_paid || 0}</Text><Text style={styles.shopStatLabel}>NOT PAID</Text></View>
+            <View style={styles.shopStat}><Text style={styles.shopStatNumber}>{shopSummary.active || 0}</Text><Text style={styles.shopStatLabel}>ACTIVE</Text></View>
+            <View style={styles.shopStat}><Text style={styles.shopStatNumber}>{shopSummary.expired || 0}</Text><Text style={styles.shopStatLabel}>EXPIRED</Text></View>
+          </View>
+          <ScrollView contentContainerStyle={styles.list} refreshControl={<RefreshControl refreshing={shopsLoading} onRefresh={() => loadShopManagement()} />}>
+            {shops.length === 0 && !shopsLoading ? (
+              <View style={styles.empty}><Text style={styles.emptyTitle}>No shops found</Text><Text style={styles.emptyText}>Registered shops yahan dikhenge.</Text><TouchableOpacity style={styles.outlineBtn} onPress={() => loadShopManagement()}><Text style={styles.outlineText}>Refresh</Text></TouchableOpacity></View>
+            ) : shops.map((item) => {
+              const status = item.admin_status || 'not_paid';
+              const statusLabel = status === 'payment_pending' ? 'PAYMENT PENDING' : status.replace('_', ' ').toUpperCase();
+              return (
+                <View key={item.shop_id} style={styles.card}>
+                  <View style={styles.cardTop}>
+                    <Text style={styles.shopName}>{item.shop_name || 'Shop'}</Text>
+                    <Text style={[styles.shopStatus, status === 'active' ? styles.statusActive : status === 'payment_pending' ? styles.statusPending : status === 'expired' ? styles.statusExpired : styles.statusUnpaid]}>{statusLabel}</Text>
+                  </View>
+                  <Text style={styles.owner}>{item.owner_name || 'Owner'} {item.phone ? '• ' + item.phone : ''}</Text>
+                  <Text style={styles.shopLocation}>{[item.address, item.area].filter(Boolean).join(', ') || 'Location not provided'}</Text>
+                  <View style={styles.infoGrid}>
+                    <View style={styles.infoCell}><Text style={styles.infoLabel}>THIS MONTH ORDERS</Text><Text style={styles.infoValue}>{item.orders_this_month || 0}</Text></View>
+                    <View style={styles.infoCell}><Text style={styles.infoLabel}>LAST 365 DAYS</Text><Text style={styles.infoValue}>{item.orders_last_365_days || 0}</Text></View>
+                  </View>
+                  <View style={styles.detailLine}><Text style={styles.detailLabel}>Category / Email</Text><Text style={styles.detailValue}>{[item.category, item.email].filter(Boolean).join(' • ') || '—'}</Text></View>
+                  <View style={styles.detailLine}><Text style={styles.detailLabel}>Subscription period</Text><Text style={styles.detailValue}>Start: {dateText(item.subscription_started_at)}{'\n'}Expiry: {dateText(item.subscription_expires_at)}</Text></View>
+                  <View style={styles.detailLine}><Text style={styles.detailLabel}>Latest payment / UTR</Text><Text selectable style={styles.detailValue}>{money(item.latest_payment_amount)}  •  {item.latest_payment_utr || 'UTR not submitted'}</Text></View>
+                  <View style={styles.detailLine}><Text style={styles.detailLabel}>Payment status / Submitted</Text><Text style={styles.detailValue}>{(item.latest_payment_status || 'No payment record').toUpperCase()}  •  {dateText(item.payment_submitted_at)}</Text></View>
+                  <View style={styles.detailLine}><Text style={styles.detailLabel}>Payment reviewed at</Text><Text style={styles.detailValue}>{dateText(item.payment_reviewed_at)}</Text></View>
+                </View>
+              );
+            })}
+          </ScrollView>
+        </>
+      ) : (
+        <>
+          <View style={styles.summary}>
+            <View style={styles.summaryIcon}><Text style={styles.summaryIconText}>⌁</Text></View>
+            <View style={styles.summaryCopy}><Text style={styles.summaryLabel}>PENDING REQUESTS</Text><Text style={styles.summaryCaption}>Payments waiting for verification</Text></View>
+            <Text style={styles.summaryNumber}>{requests.length}</Text>
+          </View>
+          <ScrollView contentContainerStyle={styles.list} refreshControl={<RefreshControl refreshing={loading} onRefresh={() => loadRequests()} />}>
+            {requests.length === 0 && !loading ? (
+              <View style={styles.empty}><Text style={styles.emptyTitle}>No pending requests</Text><Text style={styles.emptyText}>New seller subscription payments yahan dikhenge.</Text><TouchableOpacity style={styles.outlineBtn} onPress={() => loadRequests()}><Text style={styles.outlineText}>Refresh</Text></TouchableOpacity></View>
+            ) : requests.map((item, index) => {
+              const id = item.payment_id || item.id || String(index);
+              const working = busyId === id;
+              return (
+                <View key={id} style={styles.card}>
+                  <View style={styles.cardTop}><Text style={styles.shopName}>{item.shop_name || 'Shop'}</Text><Text style={styles.pending}>PENDING</Text></View>
+                  <Text style={styles.owner}>{item.owner_name || 'Seller'} {item.phone ? '• ' + item.phone : ''}</Text>
+                  <View style={styles.infoGrid}>
+                    <View style={styles.infoCell}><Text style={styles.infoLabel}>AMOUNT</Text><Text style={styles.infoValue}>{money(item.amount)}</Text></View>
+                    <View style={styles.infoCell}><Text style={styles.infoLabel}>AREA</Text><Text style={styles.infoValue}>{item.area || '—'}</Text></View>
+                  </View>
+                  <View style={styles.detailLine}><Text style={styles.detailLabel}>UTR / Transaction ID</Text><Text selectable style={styles.detailValue}>{item.utr || '—'}</Text></View>
+                  <View style={styles.detailLine}><Text style={styles.detailLabel}>Submitted</Text><Text style={styles.detailValue}>{dateText(item.submitted_at)}</Text></View>
+                  <View style={styles.actions}>
+                    <TouchableOpacity style={[styles.approveBtn, working && styles.disabled]} disabled={!!busyId} onPress={() => approve(item)}><Text style={styles.actionText}>{working ? 'Please wait…' : 'Approve'}</Text></TouchableOpacity>
+                    <TouchableOpacity style={[styles.rejectBtn, working && styles.disabled]} disabled={!!busyId} onPress={() => { setRejecting(item); setReason(''); }}><Text style={styles.actionText}>Reject</Text></TouchableOpacity>
+                  </View>
+                </View>
+              );
+            })}
+          </ScrollView>
+        </>
+      )}
       {rejecting && (
         <View style={styles.modalShade}>
           <View style={styles.modal}>
@@ -270,6 +344,21 @@ const styles = StyleSheet.create({
   headerSub:{fontSize:11,color:'#b3c4da',marginTop:3},
   logoutBtn:{borderWidth:1,borderColor:'#516783',borderRadius:11,paddingHorizontal:11,paddingVertical:9,marginLeft:8},
   logoutText:{color:'#fff',fontWeight:'800',fontSize:11},
+  tabBar:{flexDirection:'row',marginHorizontal:15,marginTop:14,backgroundColor:'#e8eef6',borderRadius:13,padding:4},
+  tabButton:{flex:1,paddingVertical:12,paddingHorizontal:7,borderRadius:10,alignItems:'center'},
+  tabActive:{backgroundColor:'#fff',shadowColor:'#19314f',shadowOpacity:.08,shadowRadius:5,elevation:2},
+  tabText:{fontSize:11,fontWeight:'800',color:'#728198',textAlign:'center'},
+  tabTextActive:{color:'#087f70'},
+  shopSummaryGrid:{flexDirection:'row',flexWrap:'wrap',gap:8,marginHorizontal:15,marginTop:13,marginBottom:14},
+  shopStat:{minWidth:'30%',flexGrow:1,backgroundColor:'#fff',borderRadius:13,padding:12,borderWidth:1,borderColor:'#e7edf5'},
+  shopStatNumber:{fontSize:22,fontWeight:'900',color:'#173657'},
+  shopStatLabel:{fontSize:8,fontWeight:'900',letterSpacing:.5,color:'#8291a5',marginTop:4},
+  shopStatus:{fontSize:8,fontWeight:'900',paddingHorizontal:8,paddingVertical:6,borderRadius:20,overflow:'hidden'},
+  statusActive:{color:'#087f70',backgroundColor:'#e4f7f2'},
+  statusPending:{color:'#986000',backgroundColor:'#fff2d6'},
+  statusExpired:{color:'#a13d4c',backgroundColor:'#ffebee'},
+  statusUnpaid:{color:'#5c6c82',backgroundColor:'#edf1f6'},
+  shopLocation:{fontSize:11,color:'#60738b',marginTop:6,lineHeight:16},
   summary:{backgroundColor:'#fff',marginHorizontal:15,marginTop:15,marginBottom:16,padding:16,borderRadius:18,flexDirection:'row',alignItems:'center',borderWidth:1,borderColor:'#e8eef5',shadowColor:'#19314f',shadowOpacity:.06,shadowRadius:12,shadowOffset:{width:0,height:5},elevation:3},
   summaryIcon:{width:43,height:43,borderRadius:14,backgroundColor:'#e4f7f2',alignItems:'center',justifyContent:'center',marginRight:12},
   summaryIconText:{fontSize:25,fontWeight:'900',color:'#087f70'},
