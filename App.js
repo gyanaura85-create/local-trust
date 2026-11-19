@@ -156,19 +156,26 @@ export default function App() {
     <SafeAreaView style={styles.safe}>
       <StatusBar barStyle="light-content" backgroundColor="#102b58" />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.loginWrap}>
-        <View style={styles.brandMark}><Text style={styles.brandK}>NK</Text></View>
-        <Text style={styles.brand}>NearKart Admin</Text>
-        <Text style={styles.subBrand}>Private shop & subscription management</Text>
-        <View style={styles.panel}>
-          <Text style={styles.panelTitle}>Admin Login</Text>
-          <Text style={styles.label}>Email</Text>
-          <TextInput style={styles.input} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" placeholder="Admin email" placeholderTextColor="#8a96a8" />
-          <Text style={styles.label}>Password</Text>
-          <TextInput style={styles.input} value={password} onChangeText={setPassword} secureTextEntry placeholder="Enter password" placeholderTextColor="#8a96a8" />
-          <TouchableOpacity style={styles.primaryBtn} onPress={login} disabled={loading}>
-            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryText}>LOGIN</Text>}
-          </TouchableOpacity>
-          <Text style={styles.hint}>Only an authorized NearKart administrator can access this app.</Text>
+        <View pointerEvents="none" style={styles.glowOne} />
+        <View pointerEvents="none" style={styles.glowTwo} />
+        <View style={styles.loginContent}>
+          <View style={styles.brandMark}><Text style={styles.brandK}>NK</Text></View>
+          <Text style={styles.brand}>NearKart <Text style={styles.brandAccent}>Admin</Text></Text>
+          <Text style={styles.subBrand}>YOUR STORE NETWORK, UNDER CONTROL</Text>
+          <View style={styles.panel}>
+            <View style={styles.secureTag}><Text style={styles.secureTagText}>SECURE ADMIN PORTAL</Text></View>
+            <Text style={styles.panelTitle}>Welcome back</Text>
+            <Text style={styles.panelSub}>Sign in to manage shop subscriptions.</Text>
+            <Text style={styles.label}>EMAIL ADDRESS</Text>
+            <TextInput style={styles.input} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" placeholder="Admin email" placeholderTextColor="#94a3b8" />
+            <Text style={styles.label}>PASSWORD</Text>
+            <TextInput style={styles.input} value={password} onChangeText={setPassword} secureTextEntry placeholder="Enter password" placeholderTextColor="#94a3b8" />
+            <TouchableOpacity style={[styles.primaryBtn, loading && styles.primaryDisabled]} onPress={login} disabled={loading}>
+              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryText}>SIGN IN  ›</Text>}
+            </TouchableOpacity>
+            <Text style={styles.hint}>Authorized NearKart administrators only.</Text>
+          </View>
+          <Text style={styles.footerNote}>NEARKART  •  ADMIN CONSOLE</Text>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -178,11 +185,15 @@ export default function App() {
     <SafeAreaView style={styles.safe}>
       <StatusBar barStyle="light-content" backgroundColor="#102b58" />
       <View style={styles.header}>
-        <View><Text style={styles.headerTitle}>NearKart Admin</Text><Text style={styles.headerSub}>Subscription requests</Text></View>
-        <TouchableOpacity onPress={logout} style={styles.logoutBtn}><Text style={styles.logoutText}>Logout</Text></TouchableOpacity>
+        <View style={styles.headerBrandRow}>
+          <View style={styles.headerMark}><Text style={styles.headerMarkText}>NK</Text></View>
+          <View><Text style={styles.headerEyebrow}>CONTROL CENTER</Text><Text style={styles.headerTitle}>NearKart Admin</Text><Text style={styles.headerSub}>Shop & subscription management</Text></View>
+        </View>
+        <TouchableOpacity onPress={logout} style={styles.logoutBtn}><Text style={styles.logoutText}>↗  Logout</Text></TouchableOpacity>
       </View>
       <View style={styles.summary}>
-        <Text style={styles.summaryLabel}>PENDING REQUESTS</Text>
+        <View style={styles.summaryIcon}><Text style={styles.summaryIconText}>⌁</Text></View>
+        <View style={styles.summaryCopy}><Text style={styles.summaryLabel}>PENDING REQUESTS</Text><Text style={styles.summaryCaption}>Payments waiting for verification</Text></View>
         <Text style={styles.summaryNumber}>{requests.length}</Text>
       </View>
       <ScrollView contentContainerStyle={styles.list} refreshControl={<RefreshControl refreshing={loading} onRefresh={() => loadRequests()} />}>
@@ -227,19 +238,71 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  safe:{flex:1,backgroundColor:'#f3f6fb'}, center:{flex:1,alignItems:'center',justifyContent:'center',backgroundColor:'#f3f6fb'},
-  loginWrap:{flex:1,justifyContent:'center',padding:24,backgroundColor:'#102b58'},
-  brandMark:{width:66,height:66,borderRadius:20,backgroundColor:'#fff',alignItems:'center',justifyContent:'center',alignSelf:'center',marginBottom:14},
-  brandK:{fontSize:25,fontWeight:'900',color:'#1457c5'},brand:{fontSize:29,fontWeight:'900',color:'#fff',textAlign:'center'},subBrand:{fontSize:13,color:'#c8d7ef',textAlign:'center',marginTop:6,marginBottom:28},
-  panel:{backgroundColor:'#fff',borderRadius:18,padding:20},panelTitle:{fontSize:20,fontWeight:'800',color:'#172b4d',marginBottom:18},
-  label:{fontSize:12,fontWeight:'700',color:'#53627a',marginBottom:7,marginTop:12},input:{borderWidth:1,borderColor:'#dce3ed',borderRadius:11,paddingHorizontal:13,paddingVertical:12,fontSize:15,color:'#172b4d',backgroundColor:'#fff'},
-  primaryBtn:{backgroundColor:'#1457c5',borderRadius:11,padding:15,alignItems:'center',marginTop:22},primaryText:{color:'#fff',fontWeight:'900',letterSpacing:1},
-  hint:{fontSize:11,color:'#78869a',lineHeight:17,marginTop:16,textAlign:'center'},
-  header:{backgroundColor:'#102b58',paddingHorizontal:20,paddingTop:14,paddingBottom:18,flexDirection:'row',alignItems:'center',justifyContent:'space-between'},
-  headerTitle:{fontSize:22,fontWeight:'900',color:'#fff'},headerSub:{fontSize:12,color:'#c8d7ef',marginTop:3},logoutBtn:{borderWidth:1,borderColor:'#8298bb',borderRadius:9,paddingHorizontal:13,paddingVertical:8},logoutText:{color:'#fff',fontWeight:'700'},
-  summary:{backgroundColor:'#fff',margin:14,padding:16,borderRadius:14,flexDirection:'row',alignItems:'center',justifyContent:'space-between'},summaryLabel:{fontSize:12,fontWeight:'800',color:'#62728a',letterSpacing:1},summaryNumber:{fontSize:28,fontWeight:'900',color:'#1457c5'},
-  list:{paddingHorizontal:14,paddingBottom:30},empty:{backgroundColor:'#fff',borderRadius:15,padding:24,alignItems:'center',marginTop:8},emptyTitle:{fontSize:17,fontWeight:'800',color:'#172b4d'},emptyText:{fontSize:13,color:'#748197',textAlign:'center',marginTop:7},outlineBtn:{borderWidth:1,borderColor:'#1457c5',borderRadius:9,paddingHorizontal:20,paddingVertical:10,marginTop:16},outlineText:{color:'#1457c5',fontWeight:'800'},
-  card:{backgroundColor:'#fff',borderRadius:15,padding:16,marginBottom:13,borderWidth:1,borderColor:'#e3e9f2'},cardTop:{flexDirection:'row',justifyContent:'space-between',alignItems:'center'},shopName:{fontSize:17,fontWeight:'900',color:'#172b4d',flex:1},pending:{fontSize:10,fontWeight:'900',color:'#a96500',backgroundColor:'#fff2d8',paddingHorizontal:9,paddingVertical:5,borderRadius:7},owner:{fontSize:13,color:'#65748a',marginTop:6},infoGrid:{flexDirection:'row',marginTop:16},infoCell:{flex:1},infoLabel:{fontSize:10,fontWeight:'800',color:'#8a96a8'},infoValue:{fontSize:15,fontWeight:'800',color:'#172b4d',marginTop:4},detailLine:{borderTopWidth:1,borderTopColor:'#edf0f5',paddingTop:10,marginTop:11},detailLabel:{fontSize:11,color:'#8490a2'},detailValue:{fontSize:13,fontWeight:'700',color:'#263b5c',marginTop:3},
-  actions:{flexDirection:'row',gap:10,marginTop:16},approveBtn:{flex:1,backgroundColor:'#16804c',padding:13,borderRadius:10,alignItems:'center'},rejectBtn:{flex:1,backgroundColor:'#c83b4d',padding:13,borderRadius:10,alignItems:'center'},actionText:{color:'#fff',fontWeight:'900'},disabled:{opacity:.55},cancelBtn:{flex:1,backgroundColor:'#e8edf5',padding:13,borderRadius:10,alignItems:'center'},cancelText:{color:'#34445d',fontWeight:'800'},
-  modalShade:{position:'absolute',left:0,right:0,top:0,bottom:0,backgroundColor:'rgba(0,0,0,.45)',justifyContent:'center',padding:22},modal:{backgroundColor:'#fff',borderRadius:16,padding:18},reasonInput:{minHeight:85,textAlignVertical:'top'}
+  safe:{flex:1,backgroundColor:'#f4f7fc'},
+  center:{flex:1,alignItems:'center',justifyContent:'center',backgroundColor:'#f4f7fc'},
+  loginWrap:{flex:1,justifyContent:'center',paddingHorizontal:22,backgroundColor:'#0b1d3a',overflow:'hidden'},
+  loginContent:{width:'100%',maxWidth:460,alignSelf:'center'},
+  glowOne:{position:'absolute',width:280,height:280,borderRadius:140,backgroundColor:'#153d68',top:-115,right:-100,opacity:.8},
+  glowTwo:{position:'absolute',width:220,height:220,borderRadius:110,backgroundColor:'#123f4c',bottom:-95,left:-95,opacity:.65},
+  brandMark:{width:68,height:68,borderRadius:22,backgroundColor:'#e5fbf5',alignItems:'center',justifyContent:'center',alignSelf:'center',marginBottom:15,borderWidth:1,borderColor:'#8ce4ce'},
+  brandK:{fontSize:25,fontWeight:'900',color:'#087f70',letterSpacing:-1},
+  brand:{fontSize:30,fontWeight:'900',color:'#fff',textAlign:'center',letterSpacing:-.8},
+  brandAccent:{color:'#62dfc3'},
+  subBrand:{fontSize:10,fontWeight:'800',letterSpacing:2,color:'#a9bfdc',textAlign:'center',marginTop:8,marginBottom:28},
+  panel:{backgroundColor:'#fff',borderRadius:25,padding:22,borderWidth:1,borderColor:'#e6edf5',shadowColor:'#000',shadowOpacity:.2,shadowRadius:24,shadowOffset:{width:0,height:12},elevation:12},
+  secureTag:{alignSelf:'flex-start',backgroundColor:'#e7f8f3',borderRadius:20,paddingHorizontal:11,paddingVertical:6,marginBottom:17},
+  secureTagText:{fontSize:9,fontWeight:'900',letterSpacing:1.1,color:'#087f70'},
+  panelTitle:{fontSize:25,fontWeight:'900',color:'#122743',letterSpacing:-.5},
+  panelSub:{fontSize:13,color:'#75849a',marginTop:5,marginBottom:8},
+  label:{fontSize:10,fontWeight:'900',color:'#53647d',marginBottom:8,marginTop:17,letterSpacing:1},
+  input:{borderWidth:1,borderColor:'#dce5ef',borderRadius:13,paddingHorizontal:15,paddingVertical:14,fontSize:15,color:'#172b4d',backgroundColor:'#f8fafd'},
+  primaryBtn:{backgroundColor:'#087f70',borderRadius:13,padding:16,alignItems:'center',justifyContent:'center',marginTop:24,minHeight:52,shadowColor:'#087f70',shadowOpacity:.22,shadowRadius:12,shadowOffset:{width:0,height:6},elevation:5},
+  primaryDisabled:{opacity:.7},
+  primaryText:{color:'#fff',fontWeight:'900',letterSpacing:1.2,fontSize:13},
+  hint:{fontSize:11,color:'#8795a8',lineHeight:17,marginTop:17,textAlign:'center'},
+  footerNote:{fontSize:9,color:'#7e98b8',letterSpacing:2,fontWeight:'800',textAlign:'center',marginTop:25},
+  header:{backgroundColor:'#0b1d3a',paddingHorizontal:18,paddingTop:17,paddingBottom:23,flexDirection:'row',alignItems:'center',justifyContent:'space-between',borderBottomLeftRadius:23,borderBottomRightRadius:23},
+  headerBrandRow:{flexDirection:'row',alignItems:'center',flex:1},
+  headerMark:{width:43,height:43,borderRadius:14,backgroundColor:'#dff8f1',alignItems:'center',justifyContent:'center',marginRight:11},
+  headerMarkText:{fontSize:16,fontWeight:'900',color:'#087f70'},
+  headerEyebrow:{fontSize:9,fontWeight:'900',color:'#65d9bd',letterSpacing:1.8,marginBottom:3},
+  headerTitle:{fontSize:21,fontWeight:'900',color:'#fff',letterSpacing:-.4},
+  headerSub:{fontSize:11,color:'#b3c4da',marginTop:3},
+  logoutBtn:{borderWidth:1,borderColor:'#516783',borderRadius:11,paddingHorizontal:11,paddingVertical:9,marginLeft:8},
+  logoutText:{color:'#fff',fontWeight:'800',fontSize:11},
+  summary:{backgroundColor:'#fff',marginHorizontal:15,marginTop:15,marginBottom:16,padding:16,borderRadius:18,flexDirection:'row',alignItems:'center',borderWidth:1,borderColor:'#e8eef5',shadowColor:'#19314f',shadowOpacity:.06,shadowRadius:12,shadowOffset:{width:0,height:5},elevation:3},
+  summaryIcon:{width:43,height:43,borderRadius:14,backgroundColor:'#e4f7f2',alignItems:'center',justifyContent:'center',marginRight:12},
+  summaryIconText:{fontSize:25,fontWeight:'900',color:'#087f70'},
+  summaryCopy:{flex:1},
+  summaryLabel:{fontSize:10,fontWeight:'900',color:'#52657d',letterSpacing:1.1},
+  summaryCaption:{fontSize:10,color:'#91a0b2',marginTop:4},
+  summaryNumber:{fontSize:30,fontWeight:'900',color:'#087f70',marginLeft:8},
+  list:{paddingHorizontal:15,paddingBottom:32},
+  empty:{backgroundColor:'#fff',borderRadius:20,padding:27,alignItems:'center',marginTop:7,borderWidth:1,borderColor:'#e8eef5'},
+  emptyTitle:{fontSize:18,fontWeight:'900',color:'#172b4d'},
+  emptyText:{fontSize:12,color:'#8190a4',textAlign:'center',marginTop:8,lineHeight:19},
+  outlineBtn:{borderWidth:1,borderColor:'#087f70',borderRadius:11,paddingHorizontal:22,paddingVertical:11,marginTop:18,backgroundColor:'#f1fbf8'},
+  outlineText:{color:'#087f70',fontWeight:'900',fontSize:12},
+  card:{backgroundColor:'#fff',borderRadius:19,padding:17,marginBottom:14,borderWidth:1,borderColor:'#e7edf5',shadowColor:'#19314f',shadowOpacity:.05,shadowRadius:10,shadowOffset:{width:0,height:4},elevation:2},
+  cardTop:{flexDirection:'row',justifyContent:'space-between',alignItems:'center'},
+  shopName:{fontSize:17,fontWeight:'900',color:'#172b4d',flex:1,letterSpacing:-.2},
+  pending:{fontSize:9,fontWeight:'900',color:'#986000',backgroundColor:'#fff2d6',paddingHorizontal:10,paddingVertical:6,borderRadius:20,overflow:'hidden',letterSpacing:.6},
+  owner:{fontSize:12,color:'#78879b',marginTop:7},
+  infoGrid:{flexDirection:'row',marginTop:17,backgroundColor:'#f6f9fc',borderRadius:13,padding:12},
+  infoCell:{flex:1},
+  infoLabel:{fontSize:9,fontWeight:'900',color:'#8998aa',letterSpacing:1},
+  infoValue:{fontSize:15,fontWeight:'900',color:'#1a3453',marginTop:5},
+  detailLine:{borderTopWidth:1,borderTopColor:'#edf1f6',paddingTop:11,marginTop:12},
+  detailLabel:{fontSize:10,color:'#8b99aa',fontWeight:'700'},
+  detailValue:{fontSize:12,fontWeight:'800',color:'#263b5c',marginTop:4},
+  actions:{flexDirection:'row',gap:10,marginTop:17},
+  approveBtn:{flex:1,backgroundColor:'#087f70',padding:14,borderRadius:12,alignItems:'center'},
+  rejectBtn:{flex:1,backgroundColor:'#d84c5c',padding:14,borderRadius:12,alignItems:'center'},
+  actionText:{color:'#fff',fontWeight:'900',fontSize:12,letterSpacing:.3},
+  disabled:{opacity:.55},
+  cancelBtn:{flex:1,backgroundColor:'#edf1f6',padding:14,borderRadius:12,alignItems:'center'},
+  cancelText:{color:'#34445d',fontWeight:'900'},
+  modalShade:{position:'absolute',left:0,right:0,top:0,bottom:0,backgroundColor:'rgba(4,14,30,.62)',justifyContent:'center',padding:22},
+  modal:{backgroundColor:'#fff',borderRadius:21,padding:20,borderWidth:1,borderColor:'#e7edf5'},
+  reasonInput:{minHeight:90,textAlignVertical:'top'}
 });
