@@ -307,19 +307,20 @@ export default function App() {
         </View>
         <TouchableOpacity onPress={logout} style={styles.logoutBtn}><Text style={styles.logoutText}>↗  Logout</Text></TouchableOpacity>
       </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxHeight: 58 }} contentContainerStyle={{ paddingHorizontal: 15 }}>
-      <View style={[styles.tabBar, { marginHorizontal: 0, minWidth: 510 }]}>
+      <View style={styles.tabBar}>
         <TouchableOpacity onPress={() => setActiveTab('shops')} style={[styles.tabButton, activeTab === 'shops' && styles.tabActive]}>
-          <Text style={[styles.tabText, activeTab === 'shops' && styles.tabTextActive]}>Shop Management</Text>
+          <Text style={[styles.tabText, activeTab === 'shops' && styles.tabTextActive]}>🏪  Shops</Text>
+          <Text style={[styles.tabHint, activeTab === 'shops' && styles.tabHintActive]}>Management</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => setActiveTab('payments')} style={[styles.tabButton, activeTab === 'payments' && styles.tabActive]}>
-          <Text style={[styles.tabText, activeTab === 'payments' && styles.tabTextActive]}>Subscription Requests</Text>
+          <Text style={[styles.tabText, activeTab === 'payments' && styles.tabTextActive]}>₹  Payments</Text>
+          <Text style={[styles.tabHint, activeTab === 'payments' && styles.tabHintActive]}>Requests</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => { setActiveTab('catalogue'); loadMasterProducts(); }} style={[styles.tabButton, activeTab === 'catalogue' && styles.tabActive]}>
-          <Text style={[styles.tabText, activeTab === 'catalogue' && styles.tabTextActive]}>Master Products</Text>
+          <Text style={[styles.tabText, activeTab === 'catalogue' && styles.tabTextActive]}>▦  Products</Text>
+          <Text style={[styles.tabHint, activeTab === 'catalogue' && styles.tabHintActive]}>Catalogue</Text>
         </TouchableOpacity>
       </View>
-      </ScrollView>
       {activeTab === 'catalogue' ? (
         <ScrollView contentContainerStyle={styles.list} keyboardShouldPersistTaps="handled" refreshControl={<RefreshControl refreshing={masterLoading} onRefresh={() => loadMasterProducts()} />}>
           <View style={styles.card}>
@@ -482,22 +483,24 @@ const styles = StyleSheet.create({
   primaryText:{color:'#fff',fontWeight:'900',letterSpacing:1.2,fontSize:13},
   hint:{fontSize:11,color:'#8795a8',lineHeight:17,marginTop:17,textAlign:'center'},
   footerNote:{fontSize:9,color:'#7e98b8',letterSpacing:2,fontWeight:'800',textAlign:'center',marginTop:25},
-  header:{backgroundColor:'#0b1d3a',paddingHorizontal:18,paddingTop:17,paddingBottom:23,flexDirection:'row',alignItems:'center',justifyContent:'space-between',borderBottomLeftRadius:23,borderBottomRightRadius:23},
+  header:{backgroundColor:'#0b1d3a',paddingHorizontal:16,paddingTop:12,paddingBottom:16,flexDirection:'row',alignItems:'center',justifyContent:'space-between',borderBottomLeftRadius:20,borderBottomRightRadius:20},
   headerBrandRow:{flexDirection:'row',alignItems:'center',flex:1},
-  headerMark:{width:43,height:43,borderRadius:14,backgroundColor:'#dff8f1',alignItems:'center',justifyContent:'center',marginRight:11},
+  headerMark:{width:40,height:40,borderRadius:13,backgroundColor:'#dff8f1',alignItems:'center',justifyContent:'center',marginRight:10},
   headerMarkText:{fontSize:16,fontWeight:'900',color:'#087f70'},
   headerEyebrow:{fontSize:9,fontWeight:'900',color:'#65d9bd',letterSpacing:1.8,marginBottom:3},
-  headerTitle:{fontSize:21,fontWeight:'900',color:'#fff',letterSpacing:-.4},
-  headerSub:{fontSize:11,color:'#b3c4da',marginTop:3},
+  headerTitle:{fontSize:19,fontWeight:'900',color:'#fff',letterSpacing:-.4},
+  headerSub:{fontSize:10,color:'#b3c4da',marginTop:3},
   logoutBtn:{borderWidth:1,borderColor:'#516783',borderRadius:11,paddingHorizontal:11,paddingVertical:9,marginLeft:8},
   logoutText:{color:'#fff',fontWeight:'800',fontSize:11},
-  tabBar:{flexDirection:'row',marginHorizontal:15,marginTop:14,backgroundColor:'#e8eef6',borderRadius:13,padding:4},
-  tabButton:{flex:1,paddingVertical:12,paddingHorizontal:7,borderRadius:10,alignItems:'center'},
-  tabActive:{backgroundColor:'#fff',shadowColor:'#19314f',shadowOpacity:.08,shadowRadius:5,elevation:2},
-  tabText:{fontSize:11,fontWeight:'800',color:'#728198',textAlign:'center'},
+  tabBar:{flexDirection:'row',marginHorizontal:12,marginTop:12,marginBottom:5,backgroundColor:'#e7edf5',borderRadius:15,padding:4,borderWidth:1,borderColor:'#dce5ef'},
+  tabButton:{flex:1,minWidth:0,paddingVertical:10,paddingHorizontal:3,borderRadius:11,alignItems:'center',justifyContent:'center'},
+  tabActive:{backgroundColor:'#fff',borderWidth:1,borderColor:'#ccebe3',shadowColor:'#19314f',shadowOpacity:.1,shadowRadius:5,elevation:3},
+  tabText:{fontSize:10,fontWeight:'900',color:'#42536b',textAlign:'center'},
   tabTextActive:{color:'#087f70'},
-  shopSummaryGrid:{flexDirection:'row',flexWrap:'wrap',gap:8,marginHorizontal:15,marginTop:13,marginBottom:14},
-  shopStat:{minWidth:'30%',flexGrow:1,backgroundColor:'#fff',borderRadius:13,padding:12,borderWidth:1,borderColor:'#e7edf5'},
+  tabHint:{fontSize:9,fontWeight:'700',color:'#718198',marginTop:3,textAlign:'center'},
+  tabHintActive:{color:'#087f70'},
+  shopSummaryGrid:{flexDirection:'row',flexWrap:'wrap',gap:8,marginHorizontal:12,marginTop:10,marginBottom:12},
+  shopStat:{minWidth:'30%',flexGrow:1,backgroundColor:'#fff',borderRadius:14,padding:11,borderWidth:1,borderColor:'#e7edf5'},
   shopStatNumber:{fontSize:22,fontWeight:'900',color:'#173657'},
   shopStatLabel:{fontSize:8,fontWeight:'900',letterSpacing:.5,color:'#8291a5',marginTop:4},
   shopStatus:{fontSize:8,fontWeight:'900',paddingHorizontal:8,paddingVertical:6,borderRadius:20,overflow:'hidden'},
@@ -513,7 +516,7 @@ const styles = StyleSheet.create({
   summaryLabel:{fontSize:10,fontWeight:'900',color:'#52657d',letterSpacing:1.1},
   summaryCaption:{fontSize:10,color:'#91a0b2',marginTop:4},
   summaryNumber:{fontSize:30,fontWeight:'900',color:'#087f70',marginLeft:8},
-  list:{paddingHorizontal:15,paddingBottom:32},
+  list:{paddingHorizontal:12,paddingTop:5,paddingBottom:34},
   empty:{backgroundColor:'#fff',borderRadius:20,padding:27,alignItems:'center',marginTop:7,borderWidth:1,borderColor:'#e8eef5'},
   emptyTitle:{fontSize:18,fontWeight:'900',color:'#172b4d'},
   emptyText:{fontSize:12,color:'#8190a4',textAlign:'center',marginTop:8,lineHeight:19},
