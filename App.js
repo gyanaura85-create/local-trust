@@ -72,6 +72,32 @@ export default function App() {
   const [masterSearch, setMasterSearch] = useState('');
   const [masterFilter, setMasterFilter] = useState('All');
 
+  // Keep the Admin access token fresh. Supabase access tokens expire; rotate
+  // the refresh token and persist both tokens before protected operations.
+  const getValidAdminSession = async (current) => {
+    if (!current?.access_token) throw new Error('Please sign in again.');
+    try {
+      await request('/auth/v1/user', 'GET', undefined, current.access_token);
+      return current;
+    } catch (e) {
+      if (![401, 403].includes(e.status) || !current.refresh_token) throw e;
+    }
+    const refreshed = await request('/auth/v1/token?grant_type=refresh_token', 'POST', {
+      refresh_token: current.refresh_token,
+    });
+    if (!refreshed.access_token || !refreshed.refresh_token) {
+      throw new Error('Admin session expired. Please sign in again.');
+    }
+    const next = {
+      access_token: refreshed.access_token,
+      refresh_token: refreshed.refresh_token,
+      user: refreshed.user || current.user,
+    };
+    setSession(next);
+    await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(next));
+    return next;
+  };
+
   const loadRequests = useCallback(async (activeSession) => {
     const s = activeSession || session;
     if (!s?.access_token) return;
@@ -141,11 +167,12 @@ export default function App() {
     if (!session?.access_token) return;
     setMasterSaving(true);
     try {
+      const activeSession = await getValidAdminSession(session);
       const uploaded = await fetch(IMAGE_URL + '/functions/v1/upload-nearkart-image', {
         method: 'POST',
         headers: {
           apikey: IMAGE_KEY,
-          Authorization: 'Bearer ' + session.access_token,
+          Authorization: 'Bearer ' + activeSession.access_token,
           'x-main-apikey': SUPABASE_KEY,
           'Content-Type': 'application/json',
         },
@@ -155,11 +182,11 @@ export default function App() {
       if (!uploaded.ok || !imageResult.url) throw new Error(imageResult.error || 'Product photo upload failed.');
       await request('/rest/v1/master_products', 'POST', {
         name, category: masterCategory, image_url: imageResult.url, created_by: session.user.id,
-      }, session.access_token);
+      }, activeSession.access_token);
       setMasterName('');
       setMasterPhoto(null);
       Alert.alert('Saved', 'Master catalogue mein product add ho gaya.');
-      await loadMasterProducts();
+      await loadMasterProducts(activeSession);
     } catch (e) { Alert.alert('Product save nahi hua', e.message); }
     finally { setMasterSaving(false); }
   };
@@ -192,8 +219,9 @@ export default function App() {
         if (saved) {
           const parsed = JSON.parse(saved);
           if (parsed?.access_token) {
-            setSession(parsed);
-            await Promise.all([loadRequests(parsed), loadShopManagement(parsed), loadMasterProducts(parsed)]);
+            const activeSession = await getValidAdminSession(parsed);
+            setSession(activeSession);
+            await Promise.all([loadRequests(activeSession), loadShopManagement(activeSession), loadMasterProducts(activeSession)]);
           }
         }
       } catch (e) {}
