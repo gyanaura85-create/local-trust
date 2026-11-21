@@ -146,6 +146,7 @@ export default function App() {
         headers: {
           apikey: IMAGE_KEY,
           Authorization: 'Bearer ' + session.access_token,
+          'x-main-apikey': SUPABASE_KEY,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ data_uri: masterPhoto.dataUri, folder: 'products' }),
