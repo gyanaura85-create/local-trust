@@ -380,33 +380,6 @@ export default function App() {
               {masterSaving ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryText}>SAVE MASTER PRODUCT</Text>}
             </TouchableOpacity>
           </View>
-          <View style={[styles.card, { paddingBottom: 14 }]}>
-            <Text style={styles.shopName}>Product Activity Report</Text>
-            <Text style={styles.owner}>Master catalogue activity · existing product records se calculated</Text>
-            <View style={{ flexDirection: 'row', gap: 9, marginTop: 12 }}>
-              {[
-                { label: 'TOTAL PRODUCTS', value: masterProducts.length },
-                { label: 'ADDED TODAY', value: masterProducts.filter(p => p.created_at && new Date(p.created_at).toDateString() === new Date().toDateString()).length },
-                { label: 'THIS MONTH', value: masterProducts.filter(p => { if (!p.created_at) return false; const d = new Date(p.created_at); const n = new Date(); return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth(); }).length },
-              ].map((item) => (
-                <View key={item.label} style={{ flex: 1, backgroundColor: '#edf5f4', borderRadius: 12, paddingVertical: 13, paddingHorizontal: 8 }}>
-                  <Text style={{ fontSize: 20, fontWeight: '900', color: '#087f70', textAlign: 'center' }}>{item.value}</Text>
-                  <Text style={{ fontSize: 9, fontWeight: '800', color: '#52647c', textAlign: 'center', marginTop: 5 }}>{item.label}</Text>
-                </View>
-              ))}
-            </View>
-            <Text style={[styles.label, { marginTop: 16 }]}>RECENTLY ADDED PRODUCTS</Text>
-            {masterProducts.slice().sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)).slice(0, 10).map((p) => (
-              <View key={'activity-' + p.id} style={{ paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: '#edf1f6', flexDirection: 'row', alignItems: 'center' }}>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 12, fontWeight: '800', color: '#172b4d' }}>{p.name}</Text>
-                  <Text style={{ fontSize: 10, color: '#718198', marginTop: 3 }}>{p.category}</Text>
-                </View>
-                <Text style={{ fontSize: 10, color: '#718198' }}>{p.created_at ? new Date(p.created_at).toLocaleDateString() : 'Date unavailable'}</Text>
-              </View>
-            ))}
-            {masterProducts.length === 0 && <Text style={styles.emptyText}>Abhi koi product add nahi hua hai.</Text>}
-          </View>
           <View style={[styles.card, { paddingBottom: 10 }]}>
             <View style={styles.cardTop}>
               <Text style={styles.shopName}>Master Catalogue</Text>
@@ -433,6 +406,33 @@ export default function App() {
               </View>
             ))}
             {!masterLoading && masterProducts.filter(p => (masterFilter === 'All' || p.category === masterFilter) && (p.name + ' ' + p.category).toLowerCase().includes(masterSearch.trim().toLowerCase())).length === 0 ? <Text style={styles.emptyText}>Is filter mein abhi koi product nahi hai.</Text> : null}
+          </View>
+          <View style={[styles.card, { paddingBottom: 14 }]}>
+            <Text style={styles.shopName}>Product Activity Report</Text>
+            <Text style={styles.owner}>Master catalogue activity · existing product records se calculated</Text>
+            <View style={{ flexDirection: 'row', gap: 9, marginTop: 12 }}>
+              {[
+                { label: 'TOTAL PRODUCTS', value: masterProducts.length },
+                { label: 'ADDED TODAY', value: masterProducts.filter(p => p.created_at && new Date(p.created_at).toDateString() === new Date().toDateString()).length },
+                { label: 'THIS MONTH', value: masterProducts.filter(p => { if (!p.created_at) return false; const d = new Date(p.created_at); const n = new Date(); return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth(); }).length },
+              ].map((item) => (
+                <View key={item.label} style={{ flex: 1, backgroundColor: '#edf5f4', borderRadius: 12, paddingVertical: 13, paddingHorizontal: 8 }}>
+                  <Text style={{ fontSize: 20, fontWeight: '900', color: '#087f70', textAlign: 'center' }}>{item.value}</Text>
+                  <Text style={{ fontSize: 9, fontWeight: '800', color: '#52647c', textAlign: 'center', marginTop: 5 }}>{item.label}</Text>
+                </View>
+              ))}
+            </View>
+            <Text style={[styles.label, { marginTop: 16 }]}>RECENTLY ADDED PRODUCTS</Text>
+            {masterProducts.slice().sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)).slice(0, 10).map((p) => (
+              <View key={'activity-' + p.id} style={{ paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: '#edf1f6', flexDirection: 'row', alignItems: 'center' }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '800', color: '#172b4d' }}>{p.name}</Text>
+                  <Text style={{ fontSize: 10, color: '#718198', marginTop: 3 }}>{p.category}</Text>
+                </View>
+                <Text style={{ fontSize: 10, color: '#718198' }}>{p.created_at ? new Date(p.created_at).toLocaleDateString() : 'Date unavailable'}</Text>
+              </View>
+            ))}
+            {masterProducts.length === 0 && <Text style={styles.emptyText}>Abhi koi product add nahi hua hai.</Text>}
           </View>
         </ScrollView>
       ) : activeTab === 'shops' ? (
