@@ -66,6 +66,8 @@ export default function App() {
   const [masterProducts, setMasterProducts] = useState([]);
   const [masterLoading, setMasterLoading] = useState(false);
   const [masterName, setMasterName] = useState('');
+  const [masterBrand, setMasterBrand] = useState('');
+  const [masterCompany, setMasterCompany] = useState('');
   const [masterCategory, setMasterCategory] = useState('Grocery');
   const [masterPhoto, setMasterPhoto] = useState(null);
   const [masterSaving, setMasterSaving] = useState(false);
@@ -123,7 +125,7 @@ export default function App() {
     if (!s?.access_token) return;
     setMasterLoading(true);
     try {
-      const data = await request('/rest/v1/master_products?select=id,name,category,image_url,created_at,created_by&order=created_at.desc', 'GET', undefined, s.access_token);
+      const data = await request('/rest/v1/master_products?select=id,name,category,image_url,brand_name,company_name,created_at,created_by&order=created_at.desc', 'GET', undefined, s.access_token);
       setMasterProducts(Array.isArray(data) ? data : []);
     } catch (e) {
       if (e.status === 401) {
@@ -181,9 +183,13 @@ export default function App() {
       const imageResult = await uploaded.json().catch(() => ({}));
       if (!uploaded.ok || !imageResult.url) throw new Error(imageResult.error || 'Product photo upload failed.');
       await request('/rest/v1/master_products', 'POST', {
-        name, category: masterCategory, image_url: imageResult.url, created_by: session.user.id,
+        name, category: masterCategory, image_url: imageResult.url,
+        brand_name: masterBrand.trim() || null, company_name: masterCompany.trim() || null,
+        created_by: session.user.id,
       }, activeSession.access_token);
       setMasterName('');
+      setMasterBrand('');
+      setMasterCompany('');
       setMasterPhoto(null);
       Alert.alert('Saved', 'Master catalogue mein product add ho gaya.');
       await loadMasterProducts(activeSession);
@@ -357,6 +363,11 @@ export default function App() {
             <Text style={styles.owner}>Yahan add kiya product sabhi sellers ke catalogue mein available hoga.</Text>
             <Text style={styles.label}>PRODUCT NAME</Text>
             <TextInput style={styles.input} value={masterName} onChangeText={setMasterName} placeholder="Enter product name" placeholderTextColor="#94a3b8" maxLength={120} />
+            <Text style={styles.label}>BRAND NAME (OPTIONAL)</Text>
+            <TextInput style={styles.input} value={masterBrand} onChangeText={setMasterBrand} placeholder="e.g. Amul, Parle, Tata" placeholderTextColor="#94a3b8" maxLength={120} />
+            <Text style={styles.label}>COMPANY NAME (OPTIONAL)</Text>
+            <TextInput style={styles.input} value={masterCompany} onChangeText={setMasterCompany} placeholder="Enter company name if known" placeholderTextColor="#94a3b8" maxLength={160} />
+            <Text style={styles.owner}>Brand aur company details optional hain. Nahi pata ho toh blank chhod sakte hain.</Text>
             <Text style={styles.label}>SELECT CATEGORY</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7 }}>
               {PRODUCT_CATEGORIES.map((cat) => (
