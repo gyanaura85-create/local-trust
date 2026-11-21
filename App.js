@@ -1,13 +1,22 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   SafeAreaView, View, Text, TextInput, TouchableOpacity, ScrollView,
-  ActivityIndicator, Alert, StatusBar, RefreshControl, StyleSheet, KeyboardAvoidingView, Platform
+  ActivityIndicator, Alert, StatusBar, RefreshControl, StyleSheet, KeyboardAvoidingView, Platform, Image
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 
 const SUPABASE_URL = 'https://mfdiicegsgbcbvyeuxgi.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_I_ypFDUGPQdtct0U5FMhAQ_02rIepBx';
 const SESSION_KEY = 'nearkart_admin_session_v1';
+const IMAGE_URL = 'https://gaizxgufrqmmqptcycnm.supabase.co';
+const IMAGE_KEY = 'sb_publishable_Ut-JmbeEfQ84Z8zoj8johg_gsKDlzQt';
+const PRODUCT_CATEGORIES = [
+  'Grocery','Fashion','Electronics','Home','Beauty','CHICKEN-FISH','Food','Sabzi-Phal','Dudh-Dairy',
+  'Atta, Rice & Dal','Oil & Ghee','Masala','Snacks','Beverages','Dairy','Sabzi','Phal',
+  'Personal Care','Home Care','Mobile & Accessories','Other'
+];
 
 async function request(path, method = 'GET', body, token) {
   let response;
@@ -54,6 +63,14 @@ export default function App() {
   const [busyId, setBusyId] = useState('');
   const [rejecting, setRejecting] = useState(null);
   const [reason, setReason] = useState('');
+  const [masterProducts, setMasterProducts] = useState([]);
+  const [masterLoading, setMasterLoading] = useState(false);
+  const [masterName, setMasterName] = useState('');
+  const [masterCategory, setMasterCategory] = useState('Grocery');
+  const [masterPhoto, setMasterPhoto] = useState(null);
+  const [masterSaving, setMasterSaving] = useState(false);
+  const [masterSearch, setMasterSearch] = useState('');
+  const [masterFilter, setMasterFilter] = useState('All');
 
   const loadRequests = useCallback(async (activeSession) => {
     const s = activeSession || session;
@@ -74,6 +91,77 @@ export default function App() {
       setLoading(false);
     }
   }, [session]);
+
+  const loadMasterProducts = useCallback(async (activeSession) => {
+    const s = activeSession || session;
+    if (!s?.access_token) return;
+    setMasterLoading(true);
+    try {
+      const data = await request('/rest/v1/master_products?select=id,name,category,image_url,created_at&order=category.asc,name.asc', 'GET', undefined, s.access_token);
+      setMasterProducts(Array.isArray(data) ? data : []);
+    } catch (e) {
+      if (e.status === 401) {
+        await AsyncStorage.removeItem(SESSION_KEY);
+        setSession(null);
+        Alert.alert('Login expired', 'Please dobara login karo.');
+      } else Alert.alert('Master products load nahi hue', e.message);
+    } finally { setMasterLoading(false); }
+  }, [session]);
+
+  const pickMasterPhoto = async () => {
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) { Alert.alert('Permission required', 'Gallery permission allow karo.'); return; }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 1,
+      });
+      if (result.canceled || !result.assets?.[0]?.uri) return;
+      let chosen = null;
+      for (const width of [900, 760, 640, 520]) {
+        for (const quality of [0.78, 0.66, 0.54, 0.44]) {
+          const out = await ImageManipulator.manipulateAsync(result.assets[0].uri, [{ resize: { width } }], {
+            compress: quality, format: ImageManipulator.SaveFormat.JPEG, base64: true,
+          });
+          if (out.base64 && out.base64.length * 0.75 <= 950 * 1024) {
+            chosen = { uri: out.uri, dataUri: 'data:image/jpeg;base64,' + out.base64 };
+            break;
+          }
+        }
+        if (chosen) break;
+      }
+      if (!chosen) throw new Error('Photo compress nahi hui. Dusri photo try karo.');
+      setMasterPhoto(chosen);
+    } catch (e) { Alert.alert('Photo select nahi hui', e.message || 'Please try again.'); }
+  };
+
+  const saveMasterProduct = async () => {
+    const name = masterName.trim();
+    if (!name) { Alert.alert('Product name required', 'Product ka naam enter karo.'); return; }
+    if (!masterPhoto?.dataUri) { Alert.alert('Photo required', 'Product photo select karo.'); return; }
+    if (!session?.access_token) return;
+    setMasterSaving(true);
+    try {
+      const uploaded = await fetch(IMAGE_URL + '/functions/v1/upload-nearkart-image', {
+        method: 'POST',
+        headers: {
+          apikey: IMAGE_KEY,
+          Authorization: 'Bearer ' + session.access_token,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ data_uri: masterPhoto.dataUri, folder: 'products' }),
+      });
+      const imageResult = await uploaded.json().catch(() => ({}));
+      if (!uploaded.ok || !imageResult.url) throw new Error(imageResult.error || 'Product photo upload failed.');
+      await request('/rest/v1/master_products', 'POST', {
+        name, category: masterCategory, image_url: imageResult.url, created_by: session.user.id,
+      }, session.access_token);
+      setMasterName('');
+      setMasterPhoto(null);
+      Alert.alert('Saved', 'Master catalogue mein product add ho gaya.');
+      await loadMasterProducts();
+    } catch (e) { Alert.alert('Product save nahi hua', e.message); }
+    finally { setMasterSaving(false); }
+  };
 
   const loadShopManagement = useCallback(async (activeSession) => {
     const s = activeSession || session;
@@ -104,7 +192,7 @@ export default function App() {
           const parsed = JSON.parse(saved);
           if (parsed?.access_token) {
             setSession(parsed);
-            await Promise.all([loadRequests(parsed), loadShopManagement(parsed)]);
+            await Promise.all([loadRequests(parsed), loadShopManagement(parsed), loadMasterProducts(parsed)]);
           }
         }
       } catch (e) {}
@@ -128,7 +216,7 @@ export default function App() {
       setSession(next);
       await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(next));
       setPassword('');
-      await Promise.all([loadRequests(next), loadShopManagement(next)]);
+      await Promise.all([loadRequests(next), loadShopManagement(next), loadMasterProducts(next)]);
     } catch (e) {
       Alert.alert('Login failed', e.message);
     } finally {
@@ -143,6 +231,7 @@ export default function App() {
     setRequests([]);
     setShops([]);
     setShopSummary({});
+    setMasterProducts([]);
   };
 
   const approve = (item) => {
@@ -192,7 +281,7 @@ export default function App() {
           <View style={styles.panel}>
             <View style={styles.secureTag}><Text style={styles.secureTagText}>SECURE ADMIN PORTAL</Text></View>
             <Text style={styles.panelTitle}>Welcome back</Text>
-            <Text style={styles.panelSub}>Sign in to manage shop subscriptions.</Text>
+            <Text style={styles.panelSub}>Sign in to manage shops, subscriptions and the master product catalogue.</Text>
             <Text style={styles.label}>EMAIL ADDRESS</Text>
             <TextInput style={styles.input} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" placeholder="Admin email" placeholderTextColor="#94a3b8" />
             <Text style={styles.label}>PASSWORD</Text>
@@ -214,19 +303,75 @@ export default function App() {
       <View style={styles.header}>
         <View style={styles.headerBrandRow}>
           <View style={styles.headerMark}><Text style={styles.headerMarkText}>NK</Text></View>
-          <View><Text style={styles.headerEyebrow}>CONTROL CENTER</Text><Text style={styles.headerTitle}>NearKart Admin</Text><Text style={styles.headerSub}>Shop & subscription management</Text></View>
+          <View><Text style={styles.headerEyebrow}>CONTROL CENTER</Text><Text style={styles.headerTitle}>NearKart Admin</Text><Text style={styles.headerSub}>Shop, subscriptions & master catalogue</Text></View>
         </View>
         <TouchableOpacity onPress={logout} style={styles.logoutBtn}><Text style={styles.logoutText}>↗  Logout</Text></TouchableOpacity>
       </View>
-      <View style={styles.tabBar}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxHeight: 58 }} contentContainerStyle={{ paddingHorizontal: 15 }}>
+      <View style={[styles.tabBar, { marginHorizontal: 0, minWidth: 510 }]}>
         <TouchableOpacity onPress={() => setActiveTab('shops')} style={[styles.tabButton, activeTab === 'shops' && styles.tabActive]}>
           <Text style={[styles.tabText, activeTab === 'shops' && styles.tabTextActive]}>Shop Management</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => setActiveTab('payments')} style={[styles.tabButton, activeTab === 'payments' && styles.tabActive]}>
           <Text style={[styles.tabText, activeTab === 'payments' && styles.tabTextActive]}>Subscription Requests</Text>
         </TouchableOpacity>
+        <TouchableOpacity onPress={() => { setActiveTab('catalogue'); loadMasterProducts(); }} style={[styles.tabButton, activeTab === 'catalogue' && styles.tabActive]}>
+          <Text style={[styles.tabText, activeTab === 'catalogue' && styles.tabTextActive]}>Master Products</Text>
+        </TouchableOpacity>
       </View>
-      {activeTab === 'shops' ? (
+      </ScrollView>
+      {activeTab === 'catalogue' ? (
+        <ScrollView contentContainerStyle={styles.list} keyboardShouldPersistTaps="handled" refreshControl={<RefreshControl refreshing={masterLoading} onRefresh={() => loadMasterProducts()} />}>
+          <View style={styles.card}>
+            <Text style={styles.shopName}>Add Master Product</Text>
+            <Text style={styles.owner}>Yahan add kiya product sabhi sellers ke catalogue mein available hoga.</Text>
+            <Text style={styles.label}>PRODUCT NAME</Text>
+            <TextInput style={styles.input} value={masterName} onChangeText={setMasterName} placeholder="Enter product name" placeholderTextColor="#94a3b8" maxLength={120} />
+            <Text style={styles.label}>SELECT CATEGORY</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7 }}>
+              {PRODUCT_CATEGORIES.map((cat) => (
+                <TouchableOpacity key={cat} onPress={() => setMasterCategory(cat)} style={{ paddingHorizontal: 11, paddingVertical: 9, borderRadius: 20, backgroundColor: masterCategory === cat ? '#087f70' : '#edf2f7', borderWidth: 1, borderColor: masterCategory === cat ? '#087f70' : '#dce5ef', marginBottom: 2 }}>
+                  <Text style={{ fontSize: 11, fontWeight: '800', color: masterCategory === cat ? '#fff' : '#52647c' }}>{cat}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <Text style={styles.label}>PRODUCT PHOTO</Text>
+            <TouchableOpacity onPress={pickMasterPhoto} style={{ borderWidth: 1, borderStyle: 'dashed', borderColor: '#9aabbf', borderRadius: 14, minHeight: 145, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8fafd', overflow: 'hidden' }}>
+              {masterPhoto?.uri ? <Image source={{ uri: masterPhoto.uri }} style={{ width: 132, height: 132, borderRadius: 12 }} resizeMode="cover" /> : <Text style={{ color: '#52647c', fontWeight: '800' }}>＋  Select product photo</Text>}
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.primaryBtn, masterSaving && styles.primaryDisabled]} onPress={saveMasterProduct} disabled={masterSaving}>
+              {masterSaving ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryText}>SAVE MASTER PRODUCT</Text>}
+            </TouchableOpacity>
+          </View>
+          <View style={[styles.card, { paddingBottom: 10 }]}>
+            <View style={styles.cardTop}>
+              <Text style={styles.shopName}>Master Catalogue</Text>
+              <Text style={styles.pending}>{masterProducts.length} PRODUCTS</Text>
+            </View>
+            <TextInput style={[styles.input, { marginTop: 14 }]} value={masterSearch} onChangeText={setMasterSearch} placeholder="Search product name..." placeholderTextColor="#94a3b8" />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 12, marginBottom: 5 }}>
+              <TouchableOpacity onPress={() => setMasterFilter('All')} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18, backgroundColor: masterFilter === 'All' ? '#087f70' : '#edf2f7', marginRight: 7 }}>
+                <Text style={{ fontSize: 10, fontWeight: '800', color: masterFilter === 'All' ? '#fff' : '#52647c' }}>All</Text>
+              </TouchableOpacity>
+              {PRODUCT_CATEGORIES.map(cat => (
+                <TouchableOpacity key={cat} onPress={() => setMasterFilter(cat)} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18, backgroundColor: masterFilter === cat ? '#087f70' : '#edf2f7', marginRight: 7 }}>
+                  <Text style={{ fontSize: 10, fontWeight: '800', color: masterFilter === cat ? '#fff' : '#52647c' }}>{cat}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            {masterLoading ? <ActivityIndicator style={{ margin: 20 }} color="#087f70" /> : masterProducts.filter(p => (masterFilter === 'All' || p.category === masterFilter) && (p.name + ' ' + p.category).toLowerCase().includes(masterSearch.trim().toLowerCase())).map((p) => (
+              <View key={p.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: '#edf1f6' }}>
+                <Image source={{ uri: p.image_url }} style={{ width: 56, height: 56, borderRadius: 11, backgroundColor: '#edf1f6' }} />
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '900', color: '#172b4d' }}>{p.name}</Text>
+                  <Text style={{ fontSize: 11, color: '#718198', marginTop: 4 }}>{p.category}</Text>
+                </View>
+              </View>
+            ))}
+            {!masterLoading && masterProducts.filter(p => (masterFilter === 'All' || p.category === masterFilter) && (p.name + ' ' + p.category).toLowerCase().includes(masterSearch.trim().toLowerCase())).length === 0 ? <Text style={styles.emptyText}>Is filter mein abhi koi product nahi hai.</Text> : null}
+          </View>
+        </ScrollView>
+      ) : activeTab === 'shops' ? (
         <>
           <View style={styles.shopSummaryGrid}>
             <View style={styles.shopStat}><Text style={styles.shopStatNumber}>{shopSummary.total_shops || 0}</Text><Text style={styles.shopStatLabel}>TOTAL SHOPS</Text></View>
